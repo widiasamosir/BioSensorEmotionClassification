@@ -1,0 +1,51 @@
+function finalDecision = EMG_FinalDecision(filename)
+    data = csvread(filename, 10, 0);
+    time = data(:, 1);
+    emg_signal = data(:, 3); % with BandpassFilter
+    muscleResponse = checkMuscleResponse(emg_signal);
+    if  (muscleResponse == 0)
+        % fprintf('Happy \n');
+        finalDecision = 'Happy';
+    elseif(muscleResponse == 1)
+        % fprintf('Normal \n');
+        finalDecision = 'Normal';
+    elseif(muscleResponse == 2)
+        % fprintf('Sad \n');
+        finalDecision = 'Sad';
+    else
+        % fprintf('Stress \n');
+        finalDecision = 'Stress';
+    end
+end
+
+function response = checkMuscleResponse(emg_signal)
+    
+    % Calculate the instantaneous amplitude using the Hilbert Transform
+    hilbert_transform = abs(hilbert(emg_signal));
+    
+    % Calculate the instantaneous frequency using the Hilbert Transform
+    instantaneous_phase = unwrap(angle(hilbert(emg_signal)));
+    instantaneous_frequency = diff(instantaneous_phase) / (2 * pi);
+    
+    % Define threshold values for quick and slower responses
+    quick_threshold = 0.2; % Adjust as needed
+    slower_threshold = 0.497; % Adjust as needed
+    % fprintf('Hilbert Transform %.3f \n',max(hilbert_transform))
+    % fprintf('Instantaneous %.3f \n',max(instantaneous_frequency))
+    % Check the trend of amplitude and frequency
+    if max(hilbert_transform) > quick_threshold && max(instantaneous_frequency) > quick_threshold
+        response = 0; % Value 0 : 'Quick Muscle Response'
+        % disp('Quick Muscle Response');
+    elseif max(hilbert_transform) <= slower_threshold && max(instantaneous_frequency) <= slower_threshold
+        valInstan = max(instantaneous_frequency);
+        if(valInstan>0.3)
+            response = 2;
+        else 
+            response = 1;
+        end
+        % disp('Slower Muscle Response');
+    else
+        response = 3; %  Value 2 : 'Mixed or Inconclusive Response'
+        % disp('Mixed or Inconclusive Response');
+    end
+end
